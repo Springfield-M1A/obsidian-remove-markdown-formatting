@@ -1,6 +1,6 @@
 # Remove Markdown Formatting
 
-A flexible obsidian plugint that allows you to selectively remove specific markdown syntax or custom phrases from your selected text.
+A flexible obsidian plugin that allows you to selectively remove specific markdown syntax or custom phrases from your selected text.
 
 ## Features
 
