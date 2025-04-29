@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Menu, Plugin, PluginSettingTab, Setting, FuzzySuggestModal } from 'obsidian';
 
 interface RemoveMarkdownFormattingSettings {
 	customPhrases: string[];
@@ -60,41 +60,16 @@ export default class RemoveMarkdownFormattingPlugin extends Plugin {
 			});
 		});
 
-		// 우클릭 메뉴 등록
 		this.registerEvent(
 			this.app.workspace.on('editor-menu', (menu, editor, view) => {
-                console.log('[RemoveMarkdown] editor-menu triggered');
 				const selectedText = editor.getSelection();
 				if (!selectedText) return;
-
-				const removeMenu = menu.addSubmenu(item => {
-					item.setTitle('Remove Markdown');
-				});
-
-				MARKDOWN_PATTERNS.forEach(pattern => {
-					if (this.settings.enabledPatterns[pattern.key]) {
-						removeMenu.addItem(item => {
-							item.setTitle(`Remove ${pattern.label}`)
-								.setIcon('eraser')
-								.onClick(() => {
-									const cleaned = cleanLineIndentation(removePattern(selectedText, pattern.key));
-									editor.replaceSelection(cleaned);
-								});
+				menu.addItem(item => {
+					item.setTitle('Remove Markdown')
+						.setIcon('eraser')
+						.onClick(() => {
+							new RemoveOptionModal(this.app, editor, this.settings).open();
 						});
-					}
-				});
-
-				[0, 1, 2].forEach(index => {
-					const phrase = this.settings.customPhrases[index]?.trim();
-					if (!phrase) return;
-					removeMenu.addItem(item => {
-						item.setTitle(`Remove Custom Phrase ${index + 1}`)
-							.setIcon('eraser')
-							.onClick(() => {
-								const cleaned = selectedText.split(phrase).join('');
-								editor.replaceSelection(cleaned);
-							});
-					});
 				});
 			})
 		);
@@ -119,6 +94,52 @@ export default class RemoveMarkdownFormattingPlugin extends Plugin {
 	}
 }
 
+class RemoveOptionModal extends FuzzySuggestModal<string> {
+	editor: Editor;
+	settings: RemoveMarkdownFormattingSettings;
+
+	constructor(app: App, editor: Editor, settings: RemoveMarkdownFormattingSettings) {
+		super(app);
+		this.editor = editor;
+		this.settings = settings;
+		this.setPlaceholder("Select markdown element to remove");
+	}
+
+	getItems(): string[] {
+		const items: string[] = [];
+		MARKDOWN_PATTERNS.forEach(p => {
+			if (this.settings.enabledPatterns[p.key]) {
+				items.push(p.label);
+			}
+		});
+		this.settings.customPhrases.forEach((phrase, i) => {
+			if (phrase.trim()) {
+				items.push(`Custom Phrase ${i + 1}`);
+			}
+		});
+		return items;
+	}
+
+	getItemText(item: string): string {
+		return item;
+	}
+
+	onChooseItem(item: string, evt: MouseEvent | KeyboardEvent) {
+		const text = this.editor.getSelection();
+		const pattern = MARKDOWN_PATTERNS.find(p => item.startsWith(p.label));
+		let cleaned = '';
+
+		if (pattern) {
+			cleaned = cleanLineIndentation(removePattern(text, pattern.key));
+		} else if (item.startsWith('Custom Phrase')) {
+			const index = parseInt(item.split(' ')[2]) - 1;
+			const phrase = this.settings.customPhrases[index];
+			cleaned = text.split(phrase).join('');
+		}
+		this.editor.replaceSelection(cleaned);
+	}
+}
+
 function removePattern(text: string, key: string): string {
 	switch (key) {
 		case 'asterisk':
@@ -134,13 +155,13 @@ function removePattern(text: string, key: string): string {
 		case 'header':
 			return text.replace(/#/g, '');
 		case 'list':
-			return text.replace(/^\s*[-*+]\s+/gm, '');
+			return text.replace(/-/g, '');
+		case 'quote':
+			return text.replace(/>/g, '');
 		case 'numbered-list':
 			return text.replace(/^\s*\d+\.\s+/gm, '');
-		case 'quote':
-			return text.replace(/^>\s*/gm, '');
-		case 'task':
-			return text.replace(/^\s*[-*]\s+\[[ xX]\]\s+/gm, '');
+        case 'task':
+            return text.replace(/^\s*[-*]\s+\[.{1}\]\s+/gm, '');
 		default:
 			return text;
 	}
