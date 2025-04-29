@@ -4,6 +4,8 @@ import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'ob
 interface RemoveMarkdownFormattingSettings {
 	// 커스텀 문구
     customPhrases: string[];
+    // 체크박스용 (문법 별)
+    enabledPatterns: { [key: string]: boolean };
 }
 
 // 기본 설정

@@ -22,8 +22,14 @@ A flexible obsidian plugint that allows you to selectively remove specific markd
 -   Remove Asterisks (`*`)
 -   Remove Inline Code (`` ` ``)
 -   Remove LaTeX Syntax (`$`)
--   Remove Highlight Syntax (`==`)
--   Remove Comment Syntax (`%%`)
+-   Remove Highlight (`==`)
+-   Remove Comment (`%%`)
+-   Remove Header (`#`)
+-   Remove Bullet List (`-`)
+-   Remove Numbered List (`1.`)
+-   Remove Quote (`>`)
+-   Remove Task List (`- [ ]`)
+
 -   Remove Custom Phrase 1
 -   Remove Custom Phrase 2
 -   Remove Custom Phrase 3
