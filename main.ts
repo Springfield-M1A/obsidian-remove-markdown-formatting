@@ -161,7 +161,7 @@ function removePattern(text: string, key: string): string {
 		case 'numbered-list':
 			return text.replace(/^\s*\d+\.\s+/gm, '');
         case 'task':
-            return text.replace(/^\s*[-*]\s+\[.{1}\]\s+/gm, '');
+            return text.replace(/-\s+\[.{1}\]\s*/g, '');
 		default:
 			return text;
 	}
