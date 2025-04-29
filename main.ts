@@ -5,7 +5,7 @@ interface RemoveMarkdownFormattingSettings {
 	enabledPatterns: { [key: string]: boolean };
 }
 
-// 문법 리스트
+
 const MARKDOWN_PATTERNS = [
 	{ key: 'asterisk', label: 'Asterisk (*, **)', example: '*italic* or **bold**' },
 	{ key: 'inline-code', label: 'Inline Code (`)', example: '`inline code`' },
@@ -14,11 +14,12 @@ const MARKDOWN_PATTERNS = [
 	{ key: 'comment', label: 'Comment (%%)', example: '%%comment%%' },
 	{ key: 'header', label: 'Header (#)', example: '# Header 1' },
 	{ key: 'list', label: 'Unordered List (-)', example: '- List item' },
-	{ key: 'numbered-list', label: 'Numbered List (1.)', example: '1. List item' },
+	{ key: 'numbered-list', label: 'Numbered List (1.)', example: '1. List item (⚠️ May affect numbers like "2025. Plan")' },
 	{ key: 'quote', label: 'Quote (>)', example: '> Quoted text' },
 	{ key: 'task', label: 'Task List (- [ ])', example: '- [ ] Task item' },
 ];
 
+// 기본 설정
 const DEFAULT_SETTINGS: RemoveMarkdownFormattingSettings = {
 	customPhrases: ['', '', ''],
 	enabledPatterns: MARKDOWN_PATTERNS.reduce((acc, pattern) => {
@@ -33,6 +34,7 @@ export default class RemoveMarkdownFormattingPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
+		// 마크다운 문법 명령어 등록
 		MARKDOWN_PATTERNS.forEach(pattern => {
 			if (this.settings.enabledPatterns[pattern.key]) {
 				this.addCommand({
@@ -40,25 +42,58 @@ export default class RemoveMarkdownFormattingPlugin extends Plugin {
 					name: `Remove ${pattern.label}`,
 					editorCallback: (editor: Editor, view: MarkdownView) => {
 						const selected = editor.getSelection();
-						const cleaned = removePattern(selected, pattern.key);
+						const cleaned = cleanLineIndentation(removePattern(selected, pattern.key));
 						editor.replaceSelection(cleaned);
 					}
 				});
 			}
 		});
 
+		// 커스텀 문구 명령어 등록
+		this.settings.customPhrases.forEach((phrase, index) => {
+			if (phrase.trim() !== '') {
+				this.addCommand({
+					id: `remove-custom-${index + 1}`,
+					name: `Remove Custom Phrase ${index + 1}`,
+					editorCallback: (editor: Editor, view: MarkdownView) => {
+						const selected = editor.getSelection();
+						const cleaned = selected.split(phrase).join('');
+						editor.replaceSelection(cleaned);
+					}
+				});
+			}
+		});
+
+		// 우클릭 메뉴 등록
 		this.registerEvent(
 			this.app.workspace.on('editor-menu', (menu, editor, view) => {
 				const selectedText = editor.getSelection();
 				if (!selectedText) return;
 
+				const removeMenu = menu.addSubmenu(item => {
+					item.setTitle('Remove Markdown');
+				});
+
 				MARKDOWN_PATTERNS.forEach(pattern => {
 					if (this.settings.enabledPatterns[pattern.key]) {
-						menu.addItem(item => {
+						removeMenu.addItem(item => {
 							item.setTitle(`Remove ${pattern.label}`)
 								.setIcon('eraser')
 								.onClick(() => {
-									const cleaned = removePattern(selectedText, pattern.key);
+									const cleaned = cleanLineIndentation(removePattern(selectedText, pattern.key));
+									editor.replaceSelection(cleaned);
+								});
+						});
+					}
+				});
+
+				this.settings.customPhrases.forEach((phrase, index) => {
+					if (phrase.trim() !== '') {
+						removeMenu.addItem(item => {
+							item.setTitle(`Remove Custom Phrase ${index + 1}`)
+								.setIcon('eraser')
+								.onClick(() => {
+									const cleaned = selectedText.split(phrase).join('');
 									editor.replaceSelection(cleaned);
 								});
 						});
@@ -112,6 +147,16 @@ function removePattern(text: string, key: string): string {
 		default:
 			return text;
 	}
+}
+
+function cleanLineIndentation(text: string): string {
+	return text.split('\n').map(line => {
+		if (/^\s*$/.test(line)) return '';
+		if (/^\s+[^-\d>]/.test(line)) {
+			return line.replace(/^\s{1,3}/, '');
+		}
+		return line;
+	}).join('\n');
 }
 
 class RemoveMarkdownFormattingSettingTab extends PluginSettingTab {
