@@ -63,6 +63,7 @@ export default class RemoveMarkdownFormattingPlugin extends Plugin {
 		// 우클릭 메뉴 등록
 		this.registerEvent(
 			this.app.workspace.on('editor-menu', (menu, editor, view) => {
+                console.log('[RemoveMarkdown] editor-menu triggered');
 				const selectedText = editor.getSelection();
 				if (!selectedText) return;
 
