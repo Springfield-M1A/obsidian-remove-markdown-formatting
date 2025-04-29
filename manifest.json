@@ -3,7 +3,7 @@
     "name": "Remove Markdown Formatting",
     "version": "0.1.0",
     "minAppVersion": "1.5.0",
-    "description": "A flexible Obsidian plugin that selectively removes specific markdown syntax or custom phrases from selected text.",
+    "description": "Selectively remove specific Markdown syntax elements or custom phrases from selected text in Obsidian.",
     "author": "Springfield-M1A",
     "authorUrl": "https://github.com/Springfield-M1A",
     "fundingUrl": "",
