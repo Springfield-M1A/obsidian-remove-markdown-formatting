@@ -1,6 +1,6 @@
 {
     "name": "remove-markdown-formatting",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "Selectively remove specific Markdown syntax elements or custom phrases from selected text in Obsidian.",
     "main": "main.js",
     "scripts": {
@@ -13,7 +13,8 @@
         "markdown",
         "text-formatting",
         "custom-removal",
-        "editor"
+        "editor",
+        "remove"
     ],
     "author": "Springfield-M1A",
     "license": "MIT",

@@ -12,10 +12,11 @@ A flexible obsidian plugint that allows you to selectively remove specific markd
 
 ## How It Works
 
-1. Select a portion of text in your Obsidian note (or the entire note).
-2. Use the command palette or context menu to select the desired removal option.
-3. Only the selected markdown syntax or custom phrases will be removed.
-4. The rest of the text remains unchanged.
+1. Select the text you want to modify.
+2. Open the command palette (`Ctrl+P` or `Cmd+P`) and search for "Remove Markdown"
+3. Choose the specific command for the markdown syntax or custom phrase you want to remove.
+4. Alternatively, right-click on the selected text to access the context menu and choose the desired command.
+5. The selected syntax or phrase will be removed, leaving the rest of the text intact.
 
 ## Available Commands
 
@@ -39,7 +40,7 @@ Each command can be assigned a hotkey for quick access.
 ## Settings
 
 -   Define which custom phrases to remove
--   Manage multiple custom phrases independently
+-   Manage 3 custom phrases independently
 
 ## License
 
