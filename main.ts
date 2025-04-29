@@ -1,23 +1,11 @@
 import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
-// 설정 타입
 interface RemoveMarkdownFormattingSettings {
-	// 커스텀 문구 리스트
 	customPhrases: string[];
-	// 문법별 체크박스 상태
 	enabledPatterns: { [key: string]: boolean };
 }
 
-// 기본 설정
-const DEFAULT_SETTINGS: RemoveMarkdownFormattingSettings = {
-	customPhrases: ['', '', ''],
-	enabledPatterns: MARKDOWN_PATTERNS.reduce((acc, pattern) => {
-		acc[pattern.key] = false; // 기본은 전부 false
-		return acc;
-	}, {} as Record<string, boolean>)
-};
-
-// 제거 가능한 문법 리스트 + 예시
+// 문법 리스트
 const MARKDOWN_PATTERNS = [
 	{ key: 'asterisk', label: 'Asterisk (*, **)', example: '*italic* or **bold**' },
 	{ key: 'inline-code', label: 'Inline Code (`)', example: '`inline code`' },
@@ -31,32 +19,67 @@ const MARKDOWN_PATTERNS = [
 	{ key: 'task', label: 'Task List (- [ ])', example: '- [ ] Task item' },
 ];
 
+const DEFAULT_SETTINGS: RemoveMarkdownFormattingSettings = {
+	customPhrases: ['', '', ''],
+	enabledPatterns: MARKDOWN_PATTERNS.reduce((acc, pattern) => {
+		acc[pattern.key] = true;
+		return acc;
+	}, {} as Record<string, boolean>)
+};
+
 export default class RemoveMarkdownFormattingPlugin extends Plugin {
 	settings: RemoveMarkdownFormattingSettings;
 
 	async onload() {
 		await this.loadSettings();
 
-		// 명령어 등록 예시 (별 * 제거)
-		this.addCommand({
-			id: 'remove-asterisks',
-			name: 'Remove Asterisks (*)',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				const selectedText = editor.getSelection();
-				const cleanedText = selectedText.replace(/\*/g, ''); // * 모두 제거
-				editor.replaceSelection(cleanedText);
+		MARKDOWN_PATTERNS.forEach(pattern => {
+			if (this.settings.enabledPatterns[pattern.key]) {
+				this.addCommand({
+					id: `remove-${pattern.key}`,
+					name: `Remove ${pattern.label}`,
+					editorCallback: (editor: Editor, view: MarkdownView) => {
+						const selected = editor.getSelection();
+						const cleaned = removePattern(selected, pattern.key);
+						editor.replaceSelection(cleaned);
+					}
+				});
 			}
 		});
+
+		this.registerEvent(
+			this.app.workspace.on('editor-menu', (menu, editor, view) => {
+				const selectedText = editor.getSelection();
+				if (!selectedText) return;
+
+				MARKDOWN_PATTERNS.forEach(pattern => {
+					if (this.settings.enabledPatterns[pattern.key]) {
+						menu.addItem(item => {
+							item.setTitle(`Remove ${pattern.label}`)
+								.setIcon('eraser')
+								.onClick(() => {
+									const cleaned = removePattern(selectedText, pattern.key);
+									editor.replaceSelection(cleaned);
+								});
+						});
+					}
+				});
+			})
+		);
 
 		this.addSettingTab(new RemoveMarkdownFormattingSettingTab(this.app, this));
 	}
 
-	async onunload() {
-		// 언로드 처리 (필요 없으면 비워둠)
-	}
+	async onunload() {}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const loaded = await this.loadData();
+		const fallback = MARKDOWN_PATTERNS.reduce((acc, pattern) => {
+			acc[pattern.key] = true;
+			return acc;
+		}, {} as Record<string, boolean>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
+		this.settings.enabledPatterns = Object.assign({}, fallback, this.settings.enabledPatterns);
 	}
 
 	async saveSettings() {
@@ -64,7 +87,33 @@ export default class RemoveMarkdownFormattingPlugin extends Plugin {
 	}
 }
 
-// 설정 탭 클래스
+function removePattern(text: string, key: string): string {
+	switch (key) {
+		case 'asterisk':
+			return text.replace(/\*\*?|\*\*/g, '');
+		case 'inline-code':
+			return text.replace(/`+/g, '');
+		case 'latex':
+			return text.replace(/\$+/g, '');
+		case 'highlight':
+			return text.replace(/==/g, '');
+		case 'comment':
+			return text.replace(/%%.*?%%/gs, '');
+		case 'header':
+			return text.replace(/^#+\s*/gm, '');
+		case 'list':
+			return text.replace(/^\s*[-*+]\s+/gm, '');
+		case 'numbered-list':
+			return text.replace(/^\s*\d+\.\s+/gm, '');
+		case 'quote':
+			return text.replace(/^>\s*/gm, '');
+		case 'task':
+			return text.replace(/^\s*[-*]\s+\[.\]\s+/gm, '');
+		default:
+			return text;
+	}
+}
+
 class RemoveMarkdownFormattingSettingTab extends PluginSettingTab {
 	plugin: RemoveMarkdownFormattingPlugin;
 
@@ -77,24 +126,8 @@ class RemoveMarkdownFormattingSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Markdown Syntax Removal Settings' });
-
-		// 문법 제거 체크박스
-		MARKDOWN_PATTERNS.forEach(pattern => {
-			new Setting(containerEl)
-				.setName(pattern.label)
-				.setDesc(pattern.example)
-				.addToggle(toggle => toggle
-					.setValue(this.plugin.settings.enabledPatterns[pattern.key] || false)
-					.onChange(async (value) => {
-						this.plugin.settings.enabledPatterns[pattern.key] = value;
-						await this.plugin.saveSettings();
-					}));
-		});
-
 		containerEl.createEl('h2', { text: 'Custom Phrase Settings' });
 
-		// 커스텀 문구 입력창 3개
 		for (let i = 0; i < 3; i++) {
 			new Setting(containerEl)
 				.setName(`Custom Phrase ${i + 1}`)
@@ -106,5 +139,19 @@ class RemoveMarkdownFormattingSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}));
 		}
+
+		containerEl.createEl('h2', { text: 'Markdown Syntax Removal Settings' });
+
+		MARKDOWN_PATTERNS.forEach(pattern => {
+			new Setting(containerEl)
+				.setName(pattern.label)
+				.setDesc(pattern.example)
+				.addToggle(toggle => toggle
+					.setValue(this.plugin.settings.enabledPatterns[pattern.key] || false)
+					.onChange(async (value) => {
+						this.plugin.settings.enabledPatterns[pattern.key] = value;
+						await this.plugin.saveSettings();
+					}));
+		});
 	}
 }
