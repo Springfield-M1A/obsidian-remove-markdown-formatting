@@ -1,7 +1,7 @@
 {
     "name": "remove-markdown-formatting",
     "version": "1.0.0",
-    "description": "Selectively remove specific Markdown syntax elements or custom phrases from selected text in Obsidian.",
+    "description": "Selectively remove specific Markdown syntax elements or custom phrases from selected text.",
     "main": "main.js",
     "scripts": {
         "dev": "node esbuild.config.mjs",
