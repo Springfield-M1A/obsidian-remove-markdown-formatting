@@ -6,16 +6,16 @@ interface RemoveMarkdownFormattingSettings {
 }
 
 const MARKDOWN_PATTERNS = [
-	{ key: 'asterisk', label: 'Asterisk (*, **)', example: '*italic* or **bold**' },
-	{ key: 'inline-code', label: 'Inline Code (`)', example: '`inline code`' },
+	{ key: 'asterisk', label: 'asterisk (*, **)', example: '*italic* or **bold**' },
+	{ key: 'inline-code', label: 'inline code (`)', example: '`inline code`' },
 	{ key: 'latex', label: 'LaTeX ($)', example: '$latex$' },
-	{ key: 'highlight', label: 'Highlight (=)', example: '==highlight==' },
-	{ key: 'comment', label: 'Comment (%)', example: '%%comment%%' },
-	{ key: 'header', label: 'Header (#)', example: '# Header, #Tag' },
-	{ key: 'list', label: 'Unordered List (-)', example: '- List item' },
-	{ key: 'numbered-list', label: 'Numbered List (1.)', example: '1. List item (⚠️ May affect numbers like "2025. Plan")' },
-	{ key: 'quote', label: 'Quote (>)', example: '> Quoted text' },
-	{ key: 'task', label: 'Task List (- [ ])', example: '- [ ] / - [x] Task item' },
+	{ key: 'highlight', label: 'highlight (=)', example: '==highlight==' },
+	{ key: 'comment', label: 'comment (%)', example: '%%comment%%' },
+	{ key: 'header', label: 'header (#)', example: '# Header, #Tag' },
+	{ key: 'list', label: 'unordered list (-)', example: '- List item' },
+	{ key: 'numbered-list', label: 'numbered list (1.)', example: '1. List item (⚠️ May affect numbers like "2025. Plan")' },
+	{ key: 'quote', label: 'quote (>)', example: '> Quoted text' },
+	{ key: 'task', label: 'task List (- [ ])', example: '- [ ] / - [x] Task item' },
 ];
 
 const DEFAULT_SETTINGS: RemoveMarkdownFormattingSettings = {
@@ -49,7 +49,7 @@ export default class RemoveMarkdownFormattingPlugin extends Plugin {
 		[0, 1, 2].forEach(index => {
 			this.addCommand({
 				id: `remove-custom-${index + 1}`,
-				name: `Remove Custom Phrase ${index + 1}`,
+				name: `Remove custom phrase ${index + 1}`,
 				editorCallback: (editor: Editor, view: MarkdownView) => {
 					const phrase = this.settings.customPhrases[index]?.trim();
 					if (!phrase) return;
@@ -65,7 +65,7 @@ export default class RemoveMarkdownFormattingPlugin extends Plugin {
 				const selectedText = editor.getSelection();
 				if (!selectedText) return;
 				menu.addItem(item => {
-					item.setTitle('Remove Markdown')
+					item.setTitle('Remove markdown')
 						.setIcon('eraser')
 						.onClick(() => {
 							new RemoveOptionModal(this.app, editor, this.settings).open();
@@ -160,8 +160,8 @@ function removePattern(text: string, key: string): string {
 			return text.replace(/>/g, '');
 		case 'numbered-list':
 			return text.replace(/^\s*\d+\.\s+/gm, '');
-        case 'task':
-            return text.replace(/-\s+\[.{1}\]\s*/g, '');
+		case 'task':
+			return text.replace(/-\s+\[.{1}\]\s*/g, '');
 		default:
 			return text;
 	}
@@ -189,11 +189,13 @@ class RemoveMarkdownFormattingSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Custom Phrase Settings' });
+		new Setting(containerEl)
+			.setName('Custom phrases')
+			.setHeading();
 
 		for (let i = 0; i < 3; i++) {
 			new Setting(containerEl)
-				.setName(`Custom Phrase ${i + 1}`)
+				.setName(`Custom phrase ${i + 1}`)
 				.addText(text => text
 					.setPlaceholder(`Enter custom phrase ${i + 1}`)
 					.setValue(this.plugin.settings.customPhrases[i] || '')
@@ -203,7 +205,9 @@ class RemoveMarkdownFormattingSettingTab extends PluginSettingTab {
 					}));
 		}
 
-		containerEl.createEl('h2', { text: 'Markdown Syntax Removal Settings' });
+		new Setting(containerEl)
+			.setName('Markdown syntax removal')
+			.setHeading();
 
 		MARKDOWN_PATTERNS.forEach(pattern => {
 			new Setting(containerEl)
